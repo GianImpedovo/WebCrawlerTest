@@ -3,7 +3,9 @@ import mongoose from "mongoose";
 const WordSchema = new mongoose.Schema({
     _id: String,
     quantity: Number,
-    products: [String]
-})
+    product: String 
+    }, {
+    versionKey: false
+});
 
-export const Word = mongoose.model('cloudWords', WordSchema)
+export const Word = mongoose.model('words', WordSchema)
