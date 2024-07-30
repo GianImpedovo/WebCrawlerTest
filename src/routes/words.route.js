@@ -3,7 +3,7 @@ import { getWords, saveWords } from "../controllers/words.controller.js";
 
 const wordsRouter = Router();
 
-wordsRouter.post("/words", saveWords)
+wordsRouter.post("/", saveWords)
 wordsRouter.get("/words", getWords)
 
 
