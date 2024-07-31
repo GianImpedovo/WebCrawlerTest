@@ -1,9 +1,17 @@
-import { findWords, saveWord, updateOrSaveWord } from "../services/words.service.js"
-import puppeteer from 'puppeteer'
-import axios from 'axios'
 import * as cheerio from 'cheerio'
 import fetch from 'node-fetch'
-import JSDOM from 'jsdom'
+import * as WordService from '../services/words.service.js'
+
+const urlsUsed = new Set();
+const TIME_OUT = 10 * 60 * 1000;
+
+const addUrlToCache = (url) => {
+    urlsUsed.add(url);
+    setTimeout(() => {
+        urlsUsed.delete(url)
+    }, TIME_OUT);
+}
+
 
 const getProductDescription = async (url) => {
     try {
@@ -62,7 +70,7 @@ const getListWords = (description) => {
 const saveNewData = async (words) => {
     try {
         for(const key in words) {
-            await updateOrSaveWord({
+            await WordService.updateOrSaveWord({
                 id: key,
                 quantity: words[key], 
                 product: ''
@@ -74,44 +82,40 @@ const saveNewData = async (words) => {
 
 }
 
-export const getWords = async (req, res) =>  {
+export const postWords = async (req, res) =>  {
     const { url } = req.query
-    try {
-        // VERIFICAR QUE LA URL NO SE HAYA USADO PREVIAMENTE
 
-        // 1. Obtener la descripcion del producto
-        // const productDescription = await getProductDescription('http://www.amazon.com/gp/product/B00VVOCSOU')
+    if(!urlsUsed.has(url)){
+        addUrlToCache(url)
+        try {
+            // 1. Obtener la descripcion del producto
+            const productDescription = await getProductDescription(url)
+    
+            // 2. Manejar el string para obtener unicamente las palabras, esto va a ser
+            // un diccionario 
+            const words = getListWords(productDescription)
+    
+            // 3. Guardar las palabras en la db
+            //console.log(Object.keys(words).length);
+            const result = await saveNewData(words)
+    
+            return res.send(result);
+        } catch (error) {
+            console.log(error);
+            return res.status(500).send({ message: 'Error processing URL' });
+        }
+    } 
+    console.log(`url already used: ${url}`);
+    res.status(200).send({message: 'url already used'})
 
-        // 2. Manejar el string para obtener unicamente las palabras, esto va a ser
-        // un diccionario 
-        const string = 'enjoy the creative life with the tcl 40" 1080p direct led hdtv. it delivers premium picture quality and tremendous value in a sophisticated slim frame design perfect for bringing entertainment to any space. this flat screen led hdtv features high definition 1080p resolution for a sharper image and tcl true color technology for brilliant color and contrast. with direct led backlighting, view darker blacks and luminous brightness while maintaining the best standards in energy efficiency.'
-        const words = getListWords(string)
-
-        // 3. Guardar las palabras en la db
-        //console.log(Object.keys(words).length);
-        const result = await saveNewData(words)
-
-        res.send(result);
-    } catch (error) {
-        console.log(error);
-    }
 }
 
-export const saveWords = async (req, res) => {
-    const url = req.query
-    const word = {
-        _id: 'asdasdfasdfasdfsff',
-        quantity: 2,
-        product: 'TV'
-    }
-
+export const getWords = async (req , res) => {
     try {
-        // const savedWord = await saveWord(word)
-        // console.log(savedWord);
-        // res.send({
-        //     _id: savedWord
-        // })
+        const words = await WordService.findWords();
+        res.status(200).send(words)
     } catch (error) {
         console.log(error);
     }
+
 }

@@ -1,9 +1,9 @@
 import { Router } from "express";
-import { getWords, saveWords } from "../controllers/words.controller.js";
+import { getWords, postWords } from "../controllers/words.controller.js";
 
 const wordsRouter = Router();
 
-wordsRouter.post("/", saveWords)
+wordsRouter.post("/", postWords)
 wordsRouter.get("/words", getWords)
 
 
