@@ -1,17 +1,7 @@
 import * as cheerio from 'cheerio'
 import fetch from 'node-fetch'
 import * as WordService from '../services/words.service.js'
-
-const urlsUsed = new Set();
-const TIME_OUT = 10 * 60 * 1000;
-
-const addUrlToCache = (url) => {
-    urlsUsed.add(url);
-    setTimeout(() => {
-        urlsUsed.delete(url)
-    }, TIME_OUT);
-}
-
+import * as FileService from '../services/fileSystem.js'
 
 const getProductDescription = async (url) => {
     try {
@@ -38,7 +28,7 @@ const removeTrashWords = (text) => {
 }
 
 const removeCharacters = (text) => {
-    const charsToRemove = '.,"'
+    const charsToRemove = '.,"+-/*'
     const regex = new RegExp(`[${charsToRemove}]`, 'g')
     return text.replace(regex, '')
 }
@@ -84,9 +74,9 @@ const saveNewData = async (words) => {
 
 export const postWords = async (req, res) =>  {
     const { url } = req.query
-
-    if(!urlsUsed.has(url)){
-        addUrlToCache(url)
+    const existUrl = FileService.existUrl(url)
+    if(!existUrl){
+        FileService.saveUrl(url)
         try {
             // 1. Obtener la descripcion del producto
             const productDescription = await getProductDescription(url)
@@ -99,7 +89,7 @@ export const postWords = async (req, res) =>  {
             //console.log(Object.keys(words).length);
             const result = await saveNewData(words)
     
-            return res.send(result);
+            return res.status(200).send({message: 'words saved'});
         } catch (error) {
             console.log(error);
             return res.status(500).send({ message: 'Error processing URL' });
