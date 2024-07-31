@@ -1,4 +1,4 @@
-import { findWords, saveWord } from "../services/words.service.js"
+import { findWords, saveWord, updateOrSaveWord } from "../services/words.service.js"
 import puppeteer from 'puppeteer'
 import axios from 'axios'
 import * as cheerio from 'cheerio'
@@ -59,6 +59,21 @@ const getListWords = (description) => {
     return wordList
 }
 
+const saveNewData = async (words) => {
+    try {
+        for(const key in words) {
+            await updateOrSaveWord({
+                id: key,
+                quantity: words[key], 
+                product: ''
+            })
+        }
+    } catch (error) {
+        console.log(error);
+    }
+
+}
+
 export const getWords = async (req, res) =>  {
     const { url } = req.query
     try {
@@ -70,12 +85,13 @@ export const getWords = async (req, res) =>  {
         // 2. Manejar el string para obtener unicamente las palabras, esto va a ser
         // un diccionario 
         const string = 'enjoy the creative life with the tcl 40" 1080p direct led hdtv. it delivers premium picture quality and tremendous value in a sophisticated slim frame design perfect for bringing entertainment to any space. this flat screen led hdtv features high definition 1080p resolution for a sharper image and tcl true color technology for brilliant color and contrast. with direct led backlighting, view darker blacks and luminous brightness while maintaining the best standards in energy efficiency.'
-        const palabras = getListWords(string)
+        const words = getListWords(string)
 
         // 3. Guardar las palabras en la db
-        console.log(palabras);
+        //console.log(Object.keys(words).length);
+        const result = await saveNewData(words)
 
-        res.send(string);
+        res.send(result);
     } catch (error) {
         console.log(error);
     }

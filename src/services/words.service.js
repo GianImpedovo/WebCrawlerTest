@@ -5,8 +5,18 @@ export const findWords = async () => {
     return words
 }
 
-export const updateWord = async (word) => {
-    
+export const updateOrSaveWord = async (word) => {
+    try {
+        const updateWord = await Word.findByIdAndUpdate(
+            word.id, 
+            { $inc: { quantity: word.quantity }},
+            { new: true, upsert: true }
+        )
+
+        return updateWord
+    } catch (error) {
+        console.log(error);
+    }
 }
 
 export const saveWord = async (word) => {
