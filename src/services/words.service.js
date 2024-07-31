@@ -5,6 +5,10 @@ export const findWords = async () => {
     return words
 }
 
+export const updateWord = async (word) => {
+    
+}
+
 export const saveWord = async (word) => {
     const result = new Word(word)
     try {
