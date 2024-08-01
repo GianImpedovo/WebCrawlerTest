@@ -5,7 +5,8 @@ const options = {
     limit: 10
 }
 
-export const findWords = async () => {
+export const findWords = async (page) => {
+    options.page = page || 1
     const words = await Word.paginate({}, options, { products: 0 });
     return words;
 };

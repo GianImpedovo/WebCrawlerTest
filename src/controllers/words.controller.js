@@ -30,7 +30,7 @@ export const postWords = async (req, res) => {
     const { url } = req.query
     const existUrl = await UrlService.existUrl(url)
     if (!existUrl) {
-        UrlService.saveUrl(url)
+        await UrlService.saveUrl(url)
         if (activeWorkers < maxWorkers) {
             try {
                 const result = await initializeWorker(url);
@@ -64,8 +64,9 @@ const saveNewData = async (words) => {
 }
 
 export const getWords = async (req, res) => {
+    const { page } = req.query
     try {
-        let words = await WordService.findWords();
+        let words = await WordService.findWords(page);
         words.docs.sort((a, b) => b.quantity - a.quantity)
         res.status(200).send(words)
     } catch (error) {

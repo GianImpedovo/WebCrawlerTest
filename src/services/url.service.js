@@ -8,6 +8,7 @@ export const saveUrl = async(url) => {
             _id: url
         })
         newUrl.save()
+        urls.add(url)
         return newUrl._id        
     } catch (error) {
         console.log(error);

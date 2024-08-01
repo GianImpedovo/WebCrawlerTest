@@ -1,5 +1,6 @@
 import * as cheerio from 'cheerio'
 import { parentPort } from 'worker_threads'
+import fetch from 'node-fetch'
 
 parentPort.on('message', async (url) => {
     try {
