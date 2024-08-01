@@ -1,68 +1,59 @@
-import * as cheerio from 'cheerio'
-import fetch from 'node-fetch'
 import * as WordService from '../services/words.service.js'
-import * as FileService from '../services/fileSystem.js'
+import * as UrlService from '../services/url.service.js'
+import {  join } from 'path';
+import { Worker } from 'worker_threads';
 
-const getProductDescription = async (url) => {
-    try {
-        // Mejor opcion que puppeteer es node-fetch  
-        const response = await fetch(url)
-        const html = await response.text()
-        const $ = cheerio.load(html);
-        const productDescription = $('#productDescription p span').text();
-        return productDescription;
+const workerPath = join(import.meta.dirname, 'word.worker.js');
+let activeWorkers = 0;
+const maxWorkers = 3;
 
-    } catch (error) {
-        console.log(error);
-    }
+const initializeWorker = (url) => {
+    return new Promise((res, rej) => {
+        const worker = new Worker(workerPath);
+
+        worker.on('message', (message) => {
+            res(message);
+            activeWorkers--;
+        });
+
+        worker.on('error', (error) => {
+            rej(error);
+            activeWorkers--;
+        });
+
+        worker.postMessage(url);
+        activeWorkers++;
+    });
 }
 
-const removeNumbers = (text) => {
-    return text.replace(/\b\w*\d+\w*\b/g, '')
-}
-
-const removeTrashWords = (text) => {
-    const wordsToRemove = ["a", "the", "from", "for", "with", "in", "to", "and", "an", "or", "then", "any", "it", "while", "do", "might"];
-    const regex = new RegExp(`\\b(${wordsToRemove.join('|')})\\b`, 'g')
-    return text.replace(regex, '')
-}
-
-const removeCharacters = (text) => {
-    const charsToRemove = '.,"+-/*'
-    const regex = new RegExp(`[${charsToRemove}]`, 'g')
-    return text.replace(regex, '')
-}
-
-const getWordsQuantity = (allWords) => {
-    let wordDictionary = {}
-    for (let i = 0; i < allWords.length; i++) {
-        if(wordDictionary[allWords[i]]){
-            wordDictionary[allWords[i]] += 1; 
+export const postWords = async (req, res) => {
+    const { url } = req.query
+    const existUrl = await UrlService.existUrl(url)
+    if (!existUrl) {
+        UrlService.saveUrl(url)
+        if (activeWorkers < maxWorkers) {
+            try {
+                const result = await initializeWorker(url);
+                await saveNewData(result.words);
+                return res.status(200).send({ message: 'Success url processing' });
+            } catch (error) {
+                return res.status(500).send({ message: 'Error url processing', error });
+            }
         } else {
-            wordDictionary[allWords[i]] = 1; 
+            return res.send({ message: 'Try later' });
         }
     }
-    return wordDictionary
-}
 
-const getListWords = (description) => {
-    let allWords = description.toLowerCase()
-    //console.log(description);
-    allWords = removeCharacters(allWords)
-    allWords = removeTrashWords(allWords)
-    allWords = removeNumbers(allWords)
-    allWords = allWords.split(' ').filter( element => element.trim() !== '');
-    const wordList = getWordsQuantity(allWords)
+    res.status(200).send({ message: 'url already used' })
 
-    return wordList
 }
 
 const saveNewData = async (words) => {
     try {
-        for(const key in words) {
+        for (const key in words) {
             await WordService.updateOrSaveWord({
                 id: key,
-                quantity: words[key], 
+                quantity: words[key],
                 product: ''
             })
         }
@@ -72,37 +63,10 @@ const saveNewData = async (words) => {
 
 }
 
-export const postWords = async (req, res) =>  {
-    const { url } = req.query
-    const existUrl = FileService.existUrl(url)
-    if(!existUrl){
-        FileService.saveUrl(url)
-        try {
-            // 1. Obtener la descripcion del producto
-            const productDescription = await getProductDescription(url)
-    
-            // 2. Manejar el string para obtener unicamente las palabras, esto va a ser
-            // un diccionario 
-            const words = getListWords(productDescription)
-    
-            // 3. Guardar las palabras en la db
-            //console.log(Object.keys(words).length);
-            const result = await saveNewData(words)
-    
-            return res.status(200).send({message: 'words saved'});
-        } catch (error) {
-            console.log(error);
-            return res.status(500).send({ message: 'Error processing URL' });
-        }
-    } 
-    console.log(`url already used: ${url}`);
-    res.status(200).send({message: 'url already used'})
-
-}
-
-export const getWords = async (req , res) => {
+export const getWords = async (req, res) => {
     try {
-        const words = await WordService.findWords();
+        let words = await WordService.findWords();
+        words.docs.sort((a, b) => b.quantity - a.quantity)
         res.status(200).send(words)
     } catch (error) {
         console.log(error);

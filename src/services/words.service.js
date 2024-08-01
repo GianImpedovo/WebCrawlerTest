@@ -1,7 +1,12 @@
 import { Word } from "../models/words.model.js";
 
+const options = {
+    page: 1, 
+    limit: 10
+}
+
 export const findWords = async () => {
-    const words = await Word.find({}, { products: 0 });
+    const words = await Word.paginate({}, options, { products: 0 });
     return words;
 };
 
