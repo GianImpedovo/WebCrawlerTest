@@ -37,13 +37,16 @@ const removeNumbers = (text) => {
 }
 
 const removeTrashWords = (text) => {
-    const wordsToRemove = ["a", "the", "from", "for", "with", "in", "to", "and", "an", "or", "then", "any", "it", "while", "do", "might"];
+    const wordsToRemove = ["a", "the", "from", "for", "with", 
+                            "in", "to", "and", "an", "or", "then", "any", "it", 
+                            "while", "do", "might", "is", "that", "been", "are", 
+                            "of", "its", "as", "can", "well", "this", "but"];
     const regex = new RegExp(`\\b(${wordsToRemove.join('|')})\\b`, 'g')
     return text.replace(regex, '')
 }
 
 const removeCharacters = (text) => {
-    const charsToRemove = '.,"+-/*'
+    const charsToRemove = '”.,"+-/*`(){}=#$&!:;%x'
     const regex = new RegExp(`[${charsToRemove}]`, 'g')
     return text.replace(regex, '')
 }

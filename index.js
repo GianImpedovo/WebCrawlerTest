@@ -14,6 +14,6 @@ const PORT = parseInt(process.env.PORT)
 
 dbconecction()
 
-app.listen(8080, () => {
+app.listen(PORT, () => {
     console.log(`Iniciando el servidor: http://localhost:${PORT}`);
 })
